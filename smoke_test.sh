@@ -20,13 +20,13 @@ echo "[3/3] import checks..."
 python3 - << 'PY'
 import sys
 sys.path.insert(0, "audit"); sys.path.insert(0, "hypo")
-from nlss_v10.schema.chi_schema import validate, SCHEMA_VERSION
-from nlss_v10.construct.proposer import Proposer, render_task
-from nlss_v10.audit.engine import HybridAuditor, SCORE_DIMS
+from nlss.schema.chi_schema import validate, SCHEMA_VERSION
+from nlss.construct.proposer import Proposer, render_task
+from nlss.audit.engine import HybridAuditor, SCORE_DIMS
 from hypogenic.algorithm.generation import DefaultGeneration
 from hypogenic.algorithm.inference import DefaultInference
 from hypogenic.extract_label import extract_label_register
 from hypogenic.LLM_wrapper import llm_wrapper_register
-print(f"  nlss_v10 schema {SCHEMA_VERSION}, {len(SCORE_DIMS)} audit dims; hypogenic OK")
+print(f"  nlss schema {SCHEMA_VERSION}, {len(SCORE_DIMS)} audit dims; hypogenic OK")
 PY
 echo "SMOKE_OK — all three components verified."

@@ -14,7 +14,7 @@ in the registry does not exist. Schema:
    "data_path": "paper_lab/runs/S1A_pilot/",
    "cost_report": "paper_lab/costs/S1A_pilot.jsonl",
    "report": "paper_lab/reports/S1A_pilot.md",
-   "prereg": "prereg/PREREG_V10_S0_freeze.md"}
+   "prereg": "prereg/openform_freeze.md"}
 
 Append-only updates via update(); each update writes a history line.
 """
@@ -32,8 +32,8 @@ BENCH_MAP = {
     "BENCH_HYPOBENCH": "data/benchmarks/hypobench (official clone)",
     "BENCH_SCIENCEAGENTBENCH": "data/benchmarks/scienceagentbench + HF osunlp/ScienceAgentBench verified split",
     # legacy assets: registered for provenance only, never mixed with new faces
-    "LEGACY_RB480": "NLS3_V9_hardening runs/manifest_v3 (frozen)",
-    "LEGACY_DB": "NLS3_V9_hardening runs/manifest_v3/db_glm-5_3-flash (frozen)",
+    "LEGACY_RB480": "archived earlier-release manifest (frozen)",
+    "LEGACY_DB": "archived earlier-release manifest, GLM run set (frozen)",
     "LEGACY_V8_SUITE": "NLSS_V8_latest_c89 (PRE_THEORY_RETROSPECTIVE)",
 }
 

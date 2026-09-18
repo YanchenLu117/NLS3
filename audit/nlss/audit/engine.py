@@ -1,4 +1,4 @@
-"""engine.py — v10 Hybrid Audit engine (Methods §2.1-2.4, PREREG_V10_S0 §2-3).
+"""engine.py — Hybrid Audit engine (Methods, frozen spec §2-3).
 
 BuildCore  : constitutional obligations always checked, independent of candidate
              claims (C1-C4 compilations: required classes, coverage of required

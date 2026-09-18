@@ -135,11 +135,11 @@ measured subset so that every arm remains runnable.
 
 ## 🔍 3. The hybrid-audit engine
 
-[`audit/nlss_v10/`](audit/nlss_v10) is the engine behind the Construct →
+[`audit/nlss/`](audit/nlss) is the engine behind the Construct →
 Explore → Evolve loop:
 
 ```
-audit/nlss_v10/
+audit/nlss/
 ├── schema/       substrate schema + executable-operator semantics
 ├── construct/    hypothesis proposal with content-addressed prompt provenance
 ├── audit/        the hybrid auditor (score dimensions, hard obligations, judge client)
@@ -156,8 +156,8 @@ rendered content, so provenance is checkable after the fact.
 
 ```python
 import sys; sys.path.insert(0, "audit")
-from nlss_v10.schema.chi_schema import validate
-from nlss_v10.audit.engine import HybridAuditor, SCORE_DIMS
+from nlss.schema.chi_schema import validate
+from nlss.audit.engine import HybridAuditor, SCORE_DIMS
 
 result = validate(chi_dict)          # structural + semantic checks
 auditor = HybridAuditor(judge_client)  # wire your LLM into audit/judge_client.py
@@ -179,7 +179,7 @@ NLS3/
 │   ├── stats/             Holm correction, equivalence gates
 │   └── prereg/            frozen experiment registry
 ├── scripts/               campaign entry points + full preregistered protocol
-├── audit/nlss_v10/        hybrid-audit engine (see above)
+├── audit/nlss/        hybrid-audit engine (see above)
 ├── data/bh/               Buchwald–Hartwig reaction data (MIT, shipped)
 ├── smoke_test.sh          2-minute verification of all three components
 ├── THIRD_PARTY.md         licenses and provenance for every vendored component

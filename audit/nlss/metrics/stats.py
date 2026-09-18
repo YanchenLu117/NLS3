@@ -1,6 +1,6 @@
-"""stats.py — v10 statistics protocol, ported from v9 (frozen 2026-09-17).
+"""stats.py — statistics protocol (frozen 2026-09-17).
 
-v9 protocol (runs/manifest_v3 official tables):
+Official-tables protocol:
   - paired sign-permutation on task-level deltas, seed 92711, 200k resamples;
   - Holm step-down per STAGE family (each S-experiment = one family);
   - bootstrap 95% CI;
@@ -45,7 +45,7 @@ def paired_bootstrap_ci(deltas: list, seed: int = SEED + 1,
 
 
 def holm(pvals: dict) -> dict:
-    """Holm step-down over the ACTUAL p-vector (v9 lesson: never pin other
+    """Holm step-down over the ACTUAL p-vector (lesson learned: never pin other
     families at 1.0 — that degenerates to Bonferroni×index)."""
     order = sorted(pvals, key=lambda k: pvals[k])
     m = len(order)
@@ -73,6 +73,6 @@ def stage_contrast(pairs: list, label: str) -> dict:
 
 
 def pilot_gate(n_hard: int, min_hard: int = 30) -> dict:
-    """v9 gate discipline: hard-layer ≥30 before formal release."""
+    """Gate discipline: hard-layer ≥30 before formal release."""
     return {"n_hard": n_hard, "min_hard": min_hard,
             "pass": n_hard >= min_hard}

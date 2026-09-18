@@ -109,7 +109,7 @@ def judge_nonmenu(chi: dict, probe_battery: list, tolerance: dict,
 
 
 # ------------------------------------------------------------------ #
-# M_ref+ strong closure (PREREG_V10_H0_freeze §2, frozen 2026-09-17) #
+# M_ref+ strong closure (frozen 2026-09-17) #
 # ------------------------------------------------------------------ #
 
 FAMILY_ENVELOPE = {

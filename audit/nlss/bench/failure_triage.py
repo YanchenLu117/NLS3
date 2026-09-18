@@ -14,7 +14,7 @@ After each run (or periodically), scan a run's JSONL rows and classify failures:
 
 The triage report lands in paper_lab/reports/<exp_id>_triage.md with per-class
 counts, example errors, and the retry actions taken. Root-cause table is the
-input to the postmortem loop (v9 discipline: 取证定位 before any fix).
+input to the postmortem loop (discipline: forensic localization before any fix).
 """
 from __future__ import annotations
 

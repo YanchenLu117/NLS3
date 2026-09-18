@@ -1,4 +1,4 @@
-"""chi_schema.py — v10 Candidate Schema v1 validator (PREREG_V10_S0_freeze §1).
+"""chi_schema.py — Candidate Schema validator (frozen spec).
 
 Validates the proposer's candidate package χ=(Ĉ,F̂,Γ̂,Înterp̂,K). This enforces
 *describability*, never a representation family: Form is fully open. The
@@ -25,7 +25,7 @@ import json
 import re
 from dataclasses import dataclass, field
 
-SCHEMA_VERSION = "v10.1"
+SCHEMA_VERSION = "1.1"
 
 MENU_WORDS = [
     "vector", "distribution", "graph", "hierarchy", "hierarchical",

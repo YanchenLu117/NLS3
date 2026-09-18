@@ -1,4 +1,4 @@
-"""proposer.py — v10 candidate proposer (Construct stage, Methods §1).
+"""proposer.py — candidate proposer (Construct stage, Methods §1).
 
 Role separation (C3): the proposer LLM sees ONLY the task evidence and the χ
 schema description. It is never shown M_ref, menu words, audit probes, or the

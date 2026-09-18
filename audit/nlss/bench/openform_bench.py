@@ -18,7 +18,7 @@ Stats: paired sign-permutation (seed 92711) + Holm over one family
         fixedmenu_llm_vs_open_noaudit}.
 
 Usage:
-  python -m src.nlss_v10.bench.openform_bench --tasks <jsonl> --arm full \
+  python -m nlss.bench.openform_bench --tasks <jsonl> --arm full \
       --actor $NLSS_LLM_MODEL --decodes 3 --tag pilot
 """
 from __future__ import annotations
@@ -127,7 +127,7 @@ def run_candidate(task: dict, arm: str, actor: str, decode_seed: int,
             attempt_trace.append({"attempt": attempt + 1, "stage": "audit",
                                   "ok": False, "error": f"{type(e).__name__}: {str(e)[:160]}"})
             try:
-                with open(REPO / "runs" / "v10_s1" / "audit_engine_errors.log", "a") as ef:
+                with open(REPO / "runs" / "s1" / "audit_engine_errors.log", "a") as ef:
                     ef.write(json.dumps({"exp_id": exp_id, "task_id": task["task_id"],
                                          "arm": arm, "decode_seed": decode_seed,
                                          "attempt": attempt + 1,
@@ -147,7 +147,7 @@ def run_candidate(task: dict, arm: str, actor: str, decode_seed: int,
         if report.outcome == "Pass":
             break
         try:
-            rej = REPO / "runs" / "v10_s1" / "rejected" / f"{exp_id}_{_tk(task)}_{arm}_d{decode_seed}_a{attempt + 1}.json"
+            rej = REPO / "runs" / "s1" / "rejected" / f"{exp_id}_{_tk(task)}_{arm}_d{decode_seed}_a{attempt + 1}.json"
             rej.parent.mkdir(parents=True, exist_ok=True)
             rej.write_text(json.dumps(chi, ensure_ascii=False), encoding="utf-8")
         except Exception:
@@ -205,7 +205,7 @@ def main() -> int:
         ).hexdigest()[:8]
 
     tasks = load_tasks(Path(args.tasks))
-    outdir = REPO / "runs" / "v10_s1" / args.tag
+    outdir = REPO / "runs" / "s1" / args.tag
     outdir.mkdir(parents=True, exist_ok=True)
     proposer = Proposer(actor=args.actor)
     auditor = HybridAuditor(judge=JudgeClient(model=args.judge), max_probes=24)

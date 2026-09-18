@@ -1,4 +1,4 @@
-"""discoverybench_adapter.py — official DiscoveryBench tasks → v10 χ input.
+"""discoverybench_adapter.py — official DiscoveryBench tasks → χ substrate input.
 
 OFFICIAL-ONLY policy: tasks, datasets, splits, and evaluation come from the
 official clone verbatim. This adapter only WRAPS (never rewrites) a task:
@@ -117,7 +117,7 @@ def export_jsonl(tasks: list, path: Path) -> None:
 
 if __name__ == "__main__":
     tasks = sample_pilot(30)
-    out = REPO / "data" / "benchmarks" / "discoverybench_v10_tasks_pilot30.jsonl"
+    out = REPO / "data" / "benchmarks" / "discoverybench_tasks_pilot30.jsonl"
     export_jsonl(tasks, out)
     print(f"pilot30 exported: {out} ({len(tasks)} tasks)")
     from collections import Counter

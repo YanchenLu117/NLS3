@@ -1,7 +1,7 @@
-"""op_executor.py — v10 operator execution under the v9 fs_jail sandbox (HC1).
+"""op_executor.py — operator execution inside the frozen filesystem sandbox.
 
-Each declared operator in F̂.operators is executed inside the frozen v9 jail
-(/tmp/nlss_jail_v95: chroot whitelist + seccomp network-deny, fs_jail.py API:
+Each declared operator is executed inside the frozen jail
+(: chroot whitelist + seccomp network-deny, sandbox API:
 JailSpec(inputs={name: host_path}, jail_root, timeout_s) + run_in_jail(script,
 spec) -> {"returncode", "stdout", "stderr", ...}; script lands at
 /work/input/<name>, PYTHONPATH=/work/input).
@@ -27,8 +27,8 @@ import tempfile
 import time
 from pathlib import Path
 
-V9_REPO = Path(os.environ.get("NLSS_V9_REPO", ""))
-JAIL_ROOT = Path("/tmp/nlss_jail_v95")  # frozen active dependency
+SANDBOX_REPO = Path(os.environ.get("NLSS_SANDBOX_REPO", ""))
+JAIL_ROOT = Path("/tmp/nlss_jail")  # frozen active dependency
 DEFAULT_TIMEOUT_S = 30.0
 
 _RUNNER_SOURCE = r'''
@@ -41,7 +41,7 @@ def _safe(x):
     except Exception:
         return repr(x)
 
-# stdin is closed under runpy launch inside the v9 jail; read spec from the
+# stdin is closed under runpy launch inside the jail; read spec from the
 # whitelisted input copy instead.
 spec = json.loads(open("/work/input/op_spec.json").read())
 ns = {"_safe": _safe}
@@ -85,17 +85,17 @@ def run_operator(op_code: str, entry_candidates: list, probe_args: list,
                     "wall_s": round(time.time() - t0, 2)}
         return _collect(proc, t0)
 
-    # ---- jail path (v9 fs_jail exact API) ----
+    # ---- jail path (sandbox exact API) ----
     import sys as _sys
-    if str(V9_REPO) not in _sys.path:
-        _sys.path.insert(0, str(V9_REPO))
+    if str(SANDBOX_REPO) not in _sys.path:
+        _sys.path.insert(0, str(SANDBOX_REPO))
     try:
-        from src.nlss_exp.sandbox.fs_jail import JailSpec, run_in_jail  # type: ignore
+        from nlss_exp.sandbox.fs_jail import JailSpec, run_in_jail  # type: ignore
     except Exception as e:
         return {"ok": False, "error": f"fs_jail import failed: {e}",
                 "wall_s": round(time.time() - t0, 2)}
 
-    with tempfile.TemporaryDirectory(prefix="nlss_v10_op_") as td:
+    with tempfile.TemporaryDirectory(prefix="nlss_op_") as td:
         host_spec = Path(td) / "op_spec.json"
         host_spec.write_text(spec_json, encoding="utf-8")
         runner = Path(td) / "op_runner.py"

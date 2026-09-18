@@ -1,4 +1,4 @@
-"""judge_client.py — v10 semantic judge client (OpenAI-compatible endpoint).
+"""judge_client.py — semantic judge client (OpenAI-compatible endpoint).
 
 Role separation (Methods C3): the judge never sees the proposer's chain of
 thought; different session; sanitizer strips proposer reasoning before any
@@ -9,11 +9,11 @@ Judge scoring protocol:
   - judge returns strict JSON: {"score": 0..1, "confidence": 0..1, "reason": "..."};
   - score 0.0 = definite fail, 1.0 = definite pass; fractional allowed;
   - uncertainty u = combination of judge self-reported confidence radius and
-    cross-judge disagreement (second judge optional, v9 judge_sens protocol);
+    cross-judge disagreement (optional second judge, judge-sensitivity protocol);
   - conservative score q̂-u is what floors compare against (frozen in prereg).
 
 Endpoint comes from NLSS_LLM_BASE_URL / NLSS_LLM_JUDGE_MODEL / NLSS_LLM_API_KEY env vars.
-enable_thinking=false appended by the v9 gateway for qwen models.
+enable_thinking=false appended for reasoning models that support the flag.
 """
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ class JudgeClient:
                 self.usage["out"] += int(u.get("completion_tokens") or 0)
                 self.usage["n"] += 1
                 return obj["choices"][0]["message"]["content"]
-            except Exception as e:  # transient 502/timeout backoff (v9 glmretry protocol)
+            except Exception as e:  # transient 502/timeout backoff
                 last_err = e
                 time.sleep(min(60.0, 2 ** attempt * 2))
         raise RuntimeError(f"judge post failed after {self.max_retries} retries: {last_err}")
