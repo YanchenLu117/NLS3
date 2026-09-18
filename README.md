@@ -8,6 +8,10 @@
 
 <p align="center"><i>The NLS³ Authors (Anonymous)</i></p>
 
+<p align="center">
+  <img src="assets/overview.png" alt="NLS³ overview: (a) current paradigm searches over a predefined space; (b) NLS³ constructs the scientific exploration substrate from natural-language hypotheses, explores for evidence, and lifts solutions back; (c) representation stays open while activation is governed" width="100%">
+</p>
+
 ---
 
 ## Why this matters
@@ -18,19 +22,10 @@ the relevant scientific variation is itself still open, **how that variation
 acquires computational existence is a first-class part of discovery.**
 
 NLS³ makes the construction of the hypothesis space an explicit, auditable
-operation, closing a loop:
-
-```
-              ┌─────────────────────────────────────────────┐
-              │                                             │
-              ▼                                             │
-  Natural-language hypotheses ──Construct──► Solution space │
-                                              │             │
-                                              ▼             │
-                                     Explore & audit        │
-                                              │             │
-                                              └── Lift ─────┘
-```
+operation, closing the loop shown above: natural-language hypotheses are
+**constructed** into a scientific exploration substrate, the substrate is
+**explored** for evidence, and confirmed structure is **lifted** back into the
+hypothesis space.
 
 **We prescribe verification, not representation.** The hypothesis space is
 *constructed*, not given. Natural language gives the proposer freedom to
