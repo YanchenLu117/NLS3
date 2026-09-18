@@ -1,0 +1,63 @@
+"""V8 P0-d — formal certification suite (Detail §4)."""
+
+from .completeness import (
+    LEVEL_0,
+    LEVEL_1,
+    LEVEL_2,
+    NONTRIVIAL_MIN_NONCONSTANT_MASKS,
+    NONTRIVIAL_MIN_QUOTIENT_ELEMENTS,
+    DeclaredRelations,
+    Level2Report,
+    certify_level2,
+    relation_precision_recall,
+)
+from .interventions import (
+    FCRScorer,
+    HiddenRelationCase,
+    InterventionContrast,
+    PREREGISTERED_CONTRASTS,
+    held_out_state_query_accuracy,
+    semantic_round_trip_failure_rate,
+    validate_hidden_relation_case,
+)
+from .masking import (
+    CERTIFICATION_INCOMPLETE,
+    CertificationIncomplete,
+    EvaluatorUniverse,
+    ImageFrame,
+    TermAntichain,
+    antichain,
+    build_image_frame,
+    enumerate_terms,
+    family_separation,
+    term_mask,
+)
+
+__all__ = [
+    "CERTIFICATION_INCOMPLETE",
+    "LEVEL_0",
+    "LEVEL_1",
+    "LEVEL_2",
+    "NONTRIVIAL_MIN_NONCONSTANT_MASKS",
+    "NONTRIVIAL_MIN_QUOTIENT_ELEMENTS",
+    "PREREGISTERED_CONTRASTS",
+    "CertificationIncomplete",
+    "DeclaredRelations",
+    "EvaluatorUniverse",
+    "FCRScorer",
+    "HiddenRelationCase",
+    "ImageFrame",
+    "InterventionContrast",
+    "Level2Report",
+    "TermAntichain",
+    "antichain",
+    "build_image_frame",
+    "certify_level2",
+    "enumerate_terms",
+    "family_separation",
+    "held_out_state_query_accuracy",
+    "relation_precision_recall",
+    "semantic_round_trip_failure_rate",
+    "term_mask",
+    "validate_hidden_relation_case",
+]
