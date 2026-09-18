@@ -1,6 +1,6 @@
 """openform_bench.py — S1 OpenFormBench lane runner (pilot→full).
 
-Task bank format (frozen, see prereg/OPENFORMBENCH_tasks_draft.md): JSONL with
+Task bank format (JSONL):
   {"task_id", "axis", "semantic_description", "evidence", "required_interactions",
    "min_classes": [{"classes": [[h,h],...], "reason": "evaluator-side floor"}],
    "tolerance": {"T_preserve": 0.05, "T_exec": 1e-6, "max_probe_failures": 0},

@@ -1,27 +1,8 @@
-"""BH V7 campaign runner — reproducible recovery-vs-budget experiment (§9).
+"""Buchwald–Hartwig (BH) campaign runner — reproducible recovery-vs-budget experiment.
 
-Runs the controlled BH finite-oracle recovery campaign under the frozen §9.6
-budget (40 init + 10x20 = 240) with paired seeds, and reports the recovery
-metric family (AURC, UnseenRecall/Precision/F1, PR-AUC, RegionRecall,
-UncoveredDistance) over **unqueried** candidates at the §4.5 checkpoints
-{2,4,6,8,10} plus budget prefixes.
-
-Arms (all consume the same oracle budget, information parity §4.4 / oracle
-parity §4.1):
-
-  * B0 ``random``      — uniform sampling (finite-oracle floor).
-  * ``hillclimb``      — outcome-blind one-factor greedy (no-recovery-state
-                         agent proxy; headroom bracket, not a paper baseline).
-  * NLSS ``nlss_rbf``  — RBF-GP recovery posterior over whole pool, propose top
-                         unqueried by p_t(x)=P(y>=gamma) (§9.7 readout quantity).
-  * NLSS ``nlss_laplacian`` — same acquisition, Laplacian graph backend.
-
-Every seed emits a §12.3-compliant JSON log under ``results/``, and a paired
-table + AURC summary is printed to stdout.
-
-Usage:
-    python scripts/run_bh_campaign.py [--arms random,nlss_rbf] [--seeds N]
-    [--out results/] [--checkpoints 40,80,120,160,200,240]
+Runs seeded optimization campaigns over the BH reaction-yield dataset and
+reports recovery (found-recall of the top variants) against query budget,
+plus AURC and best-yield summaries.
 """
 
 from __future__ import annotations
@@ -144,7 +125,7 @@ def _run_arm(
         return max(known.values()) if known else 0.0
 
     def eval_at(budget):
-        # Recovery over unqueried candidates (posterior-based; §9.9).  Only
+        # Recovery over unqueried candidates (posterior-based;).  Only
         # meaningful for arms that produce a genuine posterior (NLSS and, later,
         # GP-BO/DKL-BO).  Bare floor arms (random/hillclimb) have no unqueried
         # posterior, so we report found_recall for them and unseen metrics as NaN.
@@ -382,7 +363,7 @@ def _run_arm(
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="BH V7 recovery campaign runner")
+    ap = argparse.ArgumentParser(description="BH recovery campaign runner")
     ap.add_argument("--arms", default="random,nlss_graph,nlss_rbf,hillclimb")
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--n-initial", type=int, default=40)
@@ -398,7 +379,7 @@ def main() -> None:
         rounds=args.rounds,
         checkpoints=(args.n_initial + i * args.batch for i in range(1, args.rounds + 1)),
     )
-    # freeze checkpoints to the §4.5 set if it falls inside the budget
+    # freeze checkpoints to the set if it falls inside the budget
     cps = list(cfg.checkpoints)
     cfg = CampaignConfig(
         n_initial=args.n_initial, batch_size=args.batch, rounds=args.rounds, checkpoints=tuple(cps)
@@ -421,7 +402,7 @@ def main() -> None:
     features = _onehot_features(data)
     morgan = morgan_features(oracle)
     vocab = data.component_vocab()
-    # Frozen outcome-blind region geometry (§9.5): one-factor connected components
+    # Frozen outcome-blind region geometry (): one-factor connected components
     # of the pool, shared across seeds (does not depend on observations).
     # Report 9.5: one-factor c.c. collapses to a single region (RegionRecall
     # degenerates).  Use Morgan k-NN similarity regions as the frozen geometry so

@@ -1,26 +1,8 @@
-"""GB1 V7 campaign runner — biological cross-domain recovery replication (§10).
+"""GB1 protein-fitness campaign runner — reproducible recovery-vs-budget experiment.
 
-Reproduces the §10.5 FROZEN protocol: 96 initial + 4x96 = 480 oracle labels,
-paired seeds, better-than-WT primary solution criterion (S*_WT, |S*|=3,643),
-Hamming-1 mutation graph geometry (regions = connected components of S*_WT:
-[3640, 2, 1] — meaningful, unlike BH's collapsed one-factor regions).
-
-Arms (all consume the same oracle budget, §4.1/§4.4 parity):
-  * ``random``        — uniform sampling (finite-oracle floor).
-  * ``hillclimb``     — single-mutation greedy from best known variant (no-state
-                        agent proxy; headroom bracket).
-  * ``nlss_hamming``  — Laplacian mean/confidence propagation over the FROZEN
-                        Hamming-1 mutation graph (§10.5/§10.6).  The primary NLSS
-                        recovery mechanism on GB1.
-  * ``nlss_onehot``   — naive feature RBF GP over the 80-d one-hot encoding
-                        (control: does the mutation-graph structure add anything
-                        beyond a Euclidean kernel on the natural representation?).
-
-Recovery metrics are evaluated over the unqueried measured variants only (§10.8):
-UnseenRecall/Precision/F1, PR-AUC, Brier, RegionRecall (over S*_WT Hamming-1
-regions), AURC; optimization: best fitness + #solutions found.
-
-Every seed emits a §12.3-compliant JSON log under results/.
+Cross-domain replication of the BH protocol on the GB1 combinatorial
+fitness landscape: seeded campaigns, recovery vs budget, AURC, and
+best-fitness summaries.
 """
 
 from __future__ import annotations
@@ -93,7 +75,7 @@ def _recovery_metrics_array(
     region_rank_K: int | None = None,
     unq_pool_idx: np.ndarray | None = None,
 ) -> dict:
-    """Array-based recovery metrics over unqueried candidates (§10.8)."""
+    """Array-based recovery metrics over unqueried candidates ()."""
     n = len(labels)
     if n == 0:
         return {k: float("nan") for k in
@@ -429,7 +411,7 @@ def _run_arm(oracle, arm, seed, cfg, ledger, hamm, regions, sol_idx_set, onehot_
 
 
 def main():
-    ap = argparse.ArgumentParser(description="GB1 V7 recovery campaign runner (§10)")
+    ap = argparse.ArgumentParser(description="GB1 recovery campaign runner")
     ap.add_argument("--arms", default="random,nlss_hamming,hillclimb")
     ap.add_argument("--seeds", type=int, default=10)
     ap.add_argument("--n-initial", type=int, default=96)

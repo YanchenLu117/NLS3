@@ -1,44 +1,20 @@
 #!/usr/bin/env python
-"""V8 BH/GB1 scored-campaign runner — engineer BC (projects B=BH, C=GB1).
+"""Preregistered optimization-campaign runner for the BH (Buchwald-Hartwig)
+and GB1 protein-fitness benchmarks.
 
-LLM track: GLM-5.3-Flash only, v3_1 endpoint (configs/llm_endpoints.json,
-endpoint via NLSS_LLM_BASE_URL env, max_tokens 8192 — reasoning ~6k tokens/call
-cannot be disabled).  deepseek-v4-flash retired 2026-08-29 (61d3a87); the old
-Mac tunnel 127.0.0.1:8002|8003 is retired.  BH primary scored universe = the
-protocol-exact 3,955 measured reactions (see _BHMeasuredUniverse).
+Phases:
+  pilot      small-scale feasibility check per arm
+  p0         frozen configuration + experiment registry (hash-verified)
+  scored     the main seeded campaign; per-checkpoint score archives
+  aggregate  preregistered statistics: Holm-corrected confirmatory family,
+             equivalence (TOST) gates, descriptive contrasts
+  figs       publication figures (paired box/violin/scatter with anchors)
 
-Derived from the V8 template scripts/v8_scored_boolean.py.  Protocol authority:
-Mac ~/Desktop/NLSS_Experiment_Detail_V8.md (§2 P0/registry, §6 common universe +
-AP endpoints, §8 BH, §9 GB1, §13 caps, §14 statistics) and V8_REBUILD_BLUEPRINT
-§3.  Phases (protocol ①):
-
-    pilot      variance pilot, disjoint seeds 9900+; never counted toward claims
-    p0         freeze preregistration_registry.json (|S*|, legal-mask hash,
-               pilot-powered seed list, checkpoints, §13 caps) -> hashed, then
-               assert_scoreable
-    scored     arms x seeds under ResourceMeter; per-run JSON (V7-schema
-               compatible + v8 block), per-checkpoint score npz (§6 capture),
-               ledger JSONL via scripts/jsonl_writer.py (no hand-built JSON),
-               5-min resource snapshots
-    aggregate  common-universe AP Recovery-AURC (§6), paired §14 stats, Holm
-               within project x track, TOST gate vs frozen V7 anchors, gains
-               ledger (vs random/hillclimb/GP-BO)
-    figs       paired box+violin+scatter+lines with anchor reference lines,
-               AURC recovery curves, utility curves, paired-delta forest with
-               95% bootstrap CI, resource figure; 300 dpi PNG+PDF in figs/
-
-Arms = V8 reruns of the V7 main table (same harness/seeds/caps; V7 numbers are
-regression anchors + TOST equivalence gate only):
-  BH : nlss_graph (model) | bo_gp, bo_dkl, ballet_level | random, hillclimb
-  GB1: nlss_hamming (model) | gb1_gpbo, gb1_ballet | random, hillclimb
-  GB1 ALDE specialist runs separately on c89 (alde_venv) and is joined later.
-
-Usage (project root = repo root):
-  python scripts/v8_run_bh_gb1.py --project bh  --phase pilot
-  python scripts/v8_run_bh_gb1.py --project bh  --phase p0
-  python scripts/v8_run_bh_gb1.py --project bh  --phase scored --jobs 24
-  python scripts/v8_run_bh_gb1.py --project all --phase aggregate
-  python scripts/v8_run_bh_gb1.py --project all --phase figs
+Usage:
+  python scripts/run_preregistered_protocol.py --project bh  --phase pilot
+  python scripts/run_preregistered_protocol.py --project bh  --phase p0
+  python scripts/run_preregistered_protocol.py --project bh  --phase scored --jobs 24
+  python scripts/run_preregistered_protocol.py --project all --phase aggregate
 """
 from __future__ import annotations
 
@@ -86,7 +62,7 @@ from nlss.stats.decision import (  # noqa: E402
     paired_summary,
     tost_equivalent,
 )
-from nlss.v8.fairness import CAP_KEYS, ResourceMeter  # noqa: E402
+from nlss.protocol.fairness import CAP_KEYS, ResourceMeter  # noqa: E402
 from jsonl_writer import append_jsonl  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -123,7 +99,7 @@ CAPS_NUM = {  # §13.1 seven caps; LLM caps declared but unused by numerical arm
     "wall_time_seconds": 3600.0,
     "retries": 2.0,
 }
-GB1_ONEHOT_POOL_CAP = 25_000  # V7 harness value (documented O(n^2) feasibility cap)
+GB1_ONEHOT_POOL_CAP = 25_000  # the previous frozen release harness value (documented O(n^2) feasibility cap)
 
 # --- stage-1.5 official-code pins (external/repos.lock.yaml) ----------------
 _CLADE_REPO = ROOT / "external" / "repos" / "gb1_clade"
@@ -150,7 +126,7 @@ def _clade_verify_pin() -> None:
             f"gb1_clade checkout fingerprint {fp} != locked {_CLADE_LOCK_FINGERPRINT} — refusing to run")
 
 
-# Per-worker cache: official CLADE 'AA' encoding for the V8 pool.
+# Per-worker cache: official CLADE 'AA' encoding for the the current protocol pool.
 _GB_CLADE_CACHE: dict = {}
 
 
@@ -176,7 +152,7 @@ def _gb_clade_features(oracle):
     _GB_CLADE_CACHE["feats"] = feats
     return feats
 
-# Stage-1.5 specialists (E1_BRIEF 2026-08-31 step 2; Detail V8 §8.4/§9.4):
+# Stage-1.5 specialists (E1_BRIEF 2026-08-31 step 2; Detail the current protocol §8.4/§9.4):
 #   bh: Gryffin-plain (primary specialist) + Gryffin-desc (secondary) added;
 #   gb1: CLADE (official implementation, §9.4) added.  MLDE-style reference is
 #   NOT registered: official MLDE code unavailable (E1_ROSTER_PIN_SCAN).
@@ -188,11 +164,11 @@ DEFAULT_ARMS = {
 }
 PRIMARY_ARM = {"bh": "nlss_graph", "gb1": "nlss_hamming"}
 # Confirmatory Holm family = protocol specialists only (Detail §8.4/§9.4).
-# random/hillclimb are proposal-policy context arms: V7 rows are an old-data
+# random/hillclimb are proposal-policy context arms: the previous frozen release rows are an old-data
 # join with metric n/a (BH_GB1_MAIN_AGG), and TEAM_BRIEF 2026-08-31 forbids
-# them in the V8 confirmatory family — their V8 contrasts are computed but
+# them in the the current protocol confirmatory family — their the current protocol contrasts are computed but
 # labeled descriptive (Holm p = raw p, family tag "descriptive").
-# Family amendment (pre-outcome, before any V8 scored run / p0 freeze):
+# Family amendment (pre-outcome, before any the current protocol scored run / p0 freeze):
 # superset of the 8-31 structure freeze + the stage-1.5 specialists mandated by
 # Detail §8.4 (Gryffin-plain/desc) and §9.4 (CLADE).  No prior member removed;
 # trimming is a 统筹 ruling at the p0 freeze (DECISION_STAGE15_ARMS_20260831).
@@ -201,7 +177,7 @@ CONFIRMATORY_BASELINES = {
     "gb1": ("gb1_gpbo", "gb1_ballet", "gb1_alde", "gb1_clade"),
 }
 DESCRIPTIVE_BASELINES = ("random", "hillclimb")
-ANCHORS = {  # V7 frozen numbers (V8_REGRESSION_ANCHORS.md) — anchors + TOST gate only
+ANCHORS = {  # the previous frozen release frozen numbers (V8_REGRESSION_ANCHORS.md) — anchors + TOST gate only
     "bh": {"nlss_graph": 0.8112, "bo_gp": 0.5274, "ballet_level": 0.4843, "bo_dkl": 0.2683},
     "gb1": {"nlss_hamming": 7.8135, "gb1_gpbo": 7.5547, "gb1_ballet": 6.3605, "random": 4.2823},
 }
@@ -350,7 +326,7 @@ def _gb1_worker_init(arms: tuple) -> None:
 
 
 # ---------------------------------------------------------------------------
-# BH arms (V7 harness semantics + V8 metering / §6 score capture)
+# BH arms (the previous frozen release harness semantics + the current protocol metering / §6 score capture)
 # ---------------------------------------------------------------------------
 
 _BH_KEYS = ("aryl_halide", "ligand", "base", "additive")
@@ -374,8 +350,8 @@ class _BHMeasuredUniverse:
     Sensitivity universes, never primary (counts verified on c89 2026-08-31):
       - all-4-component real wells ......... 4,132 rows, |S*|=207, gamma=83.048
         (the pre-verification choice; recorded as labeled sensitivity)
-      - first-3-nonempty (V7 anchor uni.) .. 4,312 rows, |S*|=216, gamma=83.370
-        (used only by v8_probe_wt.py Probe A for V7-anchor attribution and by
+      - first-3-nonempty (the previous frozen release anchor uni.) .. 4,312 rows, |S*|=216, gamma=83.370
+        (used only by v8_probe_wt.py Probe A for the previous frozen release-anchor attribution and by
         results/bh_main_final — NOT comparable to the primary universe)
       - raw release table .................. 4,599 rows (descriptive appendix;
         includes 287 NaN aryl-halide control wells and empty-additive plates)
@@ -525,7 +501,7 @@ class _BHGryffinAdapter:
 
 
 def bh_run_one(task: tuple):
-    """One BH (arm, seed) campaign: V7 harness semantics + V8 metering/capture."""
+    """One BH (arm, seed) campaign: the previous frozen release harness semantics + the current protocol metering/capture."""
     (arm, seed, n_initial, batch, rounds, checkpoints, out_dir, registry_hash,
      cfg_hash, commit, model_key) = task
 
@@ -716,7 +692,7 @@ def bh_run_one(task: tuple):
         solution_prevalence=oracle.solution_prevalence(),
     )
     log["final_metrics"] = last
-    log["v8"] = {
+    log["protocol"] = {
         "phase": "scored",
         "registry_hash": registry_hash,
         "model": model_key,
@@ -740,7 +716,7 @@ def bh_run_one(task: tuple):
         },
     }
     if arm in ("gryffin_plain", "gryffin_desc") and gf is not None:
-        log["v8"]["specialist"] = {
+        log["protocol"]["specialist"] = {
             "pin": _GRYFFIN_PIN, "arm": arm,
             "n_native_proposals": int(gf.n_proposed),
             "n_rejected_proposals": int(gf.n_rejected),
@@ -817,7 +793,7 @@ def _acq_random_pool(query_pool, queried: set, rng, n: int) -> list:
 
 
 def _gb1_solution_regions_knn(oracle, k: int = 5) -> dict[int, list[int]]:
-    """Frozen outcome-blind S* family geometry (V7 harness: kNN on 80-d one-hot)."""
+    """Frozen outcome-blind S* family geometry (the previous frozen release harness: kNN on 80-d one-hot)."""
     sol = list(oracle.solution_set)
     X = np.zeros((len(sol), 4 * len(_GB1_AA)), dtype=np.float64)
     for r, v in enumerate(sol):
@@ -888,7 +864,7 @@ def _gb1_region_recall(supported_idx: set, regions: dict[int, list[int]]) -> flo
 
 def _clade_official_sequence(oracle, pool: list, seed: int, save_dir: Path):
     """Run the OFFICIAL CLADE sampling core (clustering_sampling.cluster_sample)
-    once, with an honest label channel: the Fitness wrapper evaluates the V8
+    once, with an honest label channel: the Fitness wrapper evaluates the the current protocol
     oracle exactly once per selected variant and refuses (raises) on any access
     to an unselected variant.  Returns (ordered query sequence, n_oracle_calls).
 
@@ -896,7 +872,7 @@ def _clade_official_sequence(oracle, pool: list, seed: int, save_dir: Path):
     proportional sampling, per-batch mean-fitness reweighting, GP priority
     (sampling_subcluster_priority, UCB beta=4 per Romero PNAS 2013), hierarchy
     splits at 192/288 (K_increments 30/30/30, hierarchy_batch=96) — the native
-    96 + 4x96 = 480 budget equals the V8 GB1 schedule exactly (§9.2/§9.4).
+    96 + 4x96 = 480 budget equals the the current protocol GB1 schedule exactly (§9.2/§9.4).
     Determinism: np.random.seed(seed) around the call (state restored).
     """
     _clade_verify_pin()
@@ -1220,7 +1196,7 @@ def gb1_run_one(task: tuple):
         solution_prevalence=oracle.solution_prevalence(),
     )
     log["final_metrics"] = last
-    log["v8"] = {
+    log["protocol"] = {
         "phase": "scored",
         "registry_hash": registry_hash,
         "model": model_key,
@@ -1247,7 +1223,7 @@ def gb1_run_one(task: tuple):
                         "note": "labeled sensitivity only (briefing); not primary"},
     }
     if arm == "gb1_clade":
-        log["v8"]["specialist"] = {
+        log["protocol"]["specialist"] = {
             "pin": f"gb1_clade content_fingerprint {_CLADE_LOCK_FINGERPRINT} (official snapshot)",
             "arm": arm,
             "selection": "official clustering_sampling.cluster_sample (KMeans 30/30/30, "
@@ -1338,7 +1314,7 @@ def oracle_facts(project: str) -> dict:
                              f"'{PAPER_EXCLUDED_ADDITIVE}'); verified derivable from the official "
                              "release 2026-08-31 (c89).  Labeled sensitivities, never primary: "
                              f"all-4 {facts_all4['pool']} (|S*|={facts_all4['solution_set_size']}), "
-                             f"V7-anchor first-3 {facts_first3['pool']} "
+                             f"the previous frozen release-anchor first-3 {facts_first3['pool']} "
                              f"(|S*|={facts_first3['solution_set_size']}, v8_probe_wt.py Probe A only), "
                              "raw 4,599 descriptive appendix.",
             "sensitivity_universes": {
@@ -1346,7 +1322,7 @@ def oracle_facts(project: str) -> dict:
                                                            if k in ("pool", "solution_set_size", "gamma")}},
                 "v7_first3_anchor_only": {"rows": len(first3), **{k: v for k, v in facts_first3.items()
                                                                    if k in ("pool", "solution_set_size", "gamma")},
-                                          "note": "V7 anchor attribution / probe A only"},
+                                          "note": "the previous frozen release anchor attribution / probe A only"},
             },
         }
     from nlss.adapters.gb1.data import GB1Data, WILD_TYPE
@@ -1381,7 +1357,7 @@ def build_registry(project: str, seeds: list[int], commit: str, model: str = "gl
     n_init, batch, rounds = BATCH[project]
     cps = CHECKPOINTS[project]
     cell = f"{project}_v8_scored"
-    reg = PreregRegistry(f"V8 scored cell {cell} (engineer BC, {model} track)")
+    reg = PreregRegistry(f"the current protocol scored cell {cell} (engineer BC, {model} track)")
     reg.set("repository.commits", {"nlss": commit})
     reg.set("repository.submodule_commits", {"made": "n/a"})
     src_hash = facts.get("source_sha256", "bh_data_table_csv")
@@ -1411,7 +1387,7 @@ def build_registry(project: str, seeds: list[int], commit: str, model: str = "gl
     reg.set("budgets.failure_rules",
             {project: "R_j=0.0 and utility=worst legal value from failure checkpoint (Detail §6/§14)"})
     reg.set("seeds.initial_evidence_ids", {project: f"shared_random_{n_init}_per_seed"})
-    reg.set("adapters.identity_reports", {project: "nlss.campaigns V7 harness, V8 rerun"})
+    reg.set("adapters.identity_reports", {project: "nlss.campaigns the previous frozen release harness, the current protocol rerun"})
     reg.set("adapters.supported_cells", {project: [cell]})
 
     for ep, fn in ((f"{project}_recovery", "common_universe_AP_AURC_v1"),
@@ -1449,10 +1425,10 @@ def build_registry(project: str, seeds: list[int], commit: str, model: str = "gl
         bid = f"{project}_{arm}"
         base_ids.append(bid)
         reg.set_baseline(bid, {
-            "official_identifier": f"nlss.campaigns V7 arm {arm}",
+            "official_identifier": f"nlss.campaigns the previous frozen release arm {arm}",
             "commit_hash": commit,
             "container_hash": "vcc4-venv-py3.10",
-            "entry_point": "scripts/v8_run_bh_gb1.py",
+            "entry_point": "scripts/run_preregistered_protocol.py",
             "config": {"arm": arm, "caps": {**CAPS_NUM, "oracle_budget": n_init + rounds * batch}},
             "permitted_adapter_diff": "none",
             "reproduction_tolerance": "seed_exact",
@@ -1484,7 +1460,7 @@ def _repo_commit() -> str:
             parts = line.split()
             if parts and re.fullmatch(r"[0-9a-f]{7,40}", parts[-1]):
                 return parts[-1]
-    return "v8-rebuild"
+    return "protocol-rebuild"
 
 
 # ---------------------------------------------------------------------------
@@ -1572,23 +1548,23 @@ def run_phase(project: str, phase: str, args) -> None:
                             except Exception:
                                 pass
                         log = {"benchmark": project, "method": task[0], "seed": task[1],
-                               "v8": {"phase": phase, "model": args.model,
+                               "protocol": {"phase": phase, "model": args.model,
                                       "failure": {"reason": f"infra: {type(exc).__name__}: {exc}",
                                                   "at_checkpoint": task[2]}}}
                         fails += 1
                     arm, seed = log.get("method", task[0]), int(log.get("seed", task[1]))
-                    failed = bool(log.get("v8", {}).get("failure"))
+                    failed = bool(log.get("protocol", {}).get("failure"))
                     fails += int(failed)
                     fp = out / f"{project}_{arm}_seed{seed:02d}.json"
                     dump_json(fp, log)
                     append_jsonl(led_path, sanitize({
                         "run_id": f"{project}-{phase}-{arm}-s{seed}",
                         "ts": time.time(), "phase": phase, "arm": arm,
-                        "model": log.get("v8", {}).get("model", args.model),
+                        "model": log.get("protocol", {}).get("model", args.model),
                         "llm_calls": 0, "retries": n_retry, "parse_failures": 0,
-                        "latency_s": log.get("v8", {}).get("latency_s", 0.0),
+                        "latency_s": log.get("protocol", {}).get("latency_s", 0.0),
                         "tokens": 0,
-                        "cap_state": log.get("v8", {}).get("cap_state", {}),
+                        "cap_state": log.get("protocol", {}).get("cap_state", {}),
                         "status": "failed" if failed else "ok", "file": str(fp)}))
                     done += 1
                     if done % 10 == 0 or done == len(tasks):
@@ -1637,10 +1613,10 @@ def pilot_phase(project: str, args) -> None:
             if not fp.exists():
                 continue
             d = json.loads(fp.read_text())
-            v8 = d.get("v8", {})
-            if v8.get("failure"):
+            protocol = d.get("protocol", {})
+            if protocol.get("failure"):
                 continue
-            val = v8.get("prefix", {}).get("aurc_found_recall")
+            val = protocol.get("prefix", {}).get("aurc_found_recall")
             if val is not None:
                 per_seed[arm][seed] = float(val)
     contrasts = {}
@@ -1771,12 +1747,12 @@ def aggregate_phase(args) -> None:
                 if not fp.exists():
                     continue
                 d = json.loads(fp.read_text())
-                v8 = d.get("v8", {})
-                failure_at = (v8.get("failure") or {}).get("at_checkpoint")
+                protocol = d.get("protocol", {})
+                failure_at = (protocol.get("failure") or {}).get("at_checkpoint")
                 util = {int(b): float(v) / norm
-                        for b, v in v8.get("prefix", {}).get("best_yield" if project == "bh" else "best_fit", {}).items()}
+                        for b, v in protocol.get("prefix", {}).get("best_yield" if project == "bh" else "best_fit", {}).items()}
                 hits = {int(b): float(v) / max(1, n_sol)
-                        for b, v in v8.get("prefix", {}).get("hits", {}).items()}
+                        for b, v in protocol.get("prefix", {}).get("hits", {}).items()}
                 if failure_at is not None:  # §6: worst legal value from failure onward
                     util = {b: (0.0 if b > failure_at else v) for b, v in util.items()}
                     hits = {b: (0.0 if b > failure_at else v) for b, v in hits.items()}
@@ -1784,8 +1760,8 @@ def aggregate_phase(args) -> None:
                     "aurc_common": _aurc_common(R[arm].get(seed, {}), cps),
                     "utility_auc": aurc(util),
                     "tophit_auc": aurc(hits),
-                    metric_key: 0.0 if v8.get("failure") else d.get("final_metrics", {}).get(metric_key),
-                    "failed": bool(v8.get("failure")),
+                    metric_key: 0.0 if protocol.get("failure") else d.get("final_metrics", {}).get(metric_key),
+                    "failed": bool(protocol.get("failure")),
                 }
 
         # -- §14 paired stats + Holm within project x track family
@@ -1849,12 +1825,12 @@ def aggregate_phase(args) -> None:
                     "permutation_p_raw": _r(ps.permutation_p, 6),
                     "holm_p": _r(ps.permutation_p, 6),
                     "decision": dec.label,
-                    "family": "descriptive (V7-join context arm; metric n/a in V7 agg; "
-                              "outside V8 Holm family per TEAM_BRIEF 2026-08-31)",
+                    "family": "descriptive (the previous frozen release-join context arm; metric n/a in the previous frozen release agg; "
+                              "outside the current protocol Holm family per TEAM_BRIEF 2026-08-31)",
                     "n_failures": int(sum(seed_vals[base][s]["failed"] for s in seeds if s in seed_vals[base])),
                 }
 
-        # -- TOST equivalence gate vs frozen V7 anchors (paired by seed)
+        # -- TOST equivalence gate vs frozen frozen anchors (paired by seed)
         tost = {}
         v7_dir = ROOT / "results" / f"{project}_main_final"
         for arm in arms:
@@ -1874,7 +1850,7 @@ def aggregate_phase(args) -> None:
                 tost[arm] = {"n_pairs": len(deltas),
                              "mean_v8_minus_v7": _r(float(deltas.mean())),
                              "tost_equivalent": bool(equiv),
-                             "gate": "V7 anchor citable" if equiv else "USE_V8_RERUN_ONLY"}
+                             "gate": "the previous frozen release anchor citable" if equiv else "USE_V8_RERUN_ONLY"}
         summary = {
             "registry_hash": doc["registry_hash"],
             "seeds": seeds, "checkpoints": cps, "metric": metric_key,
@@ -1909,7 +1885,7 @@ def _mean(vals):
 
 def _write_gain_ledger(project, summary, seed_vals, seeds, metric_key, primary, arms, norm, n_sol,
                        model: str = "glm") -> None:
-    lines = [f"# V8 Gains Ledger — {project.upper()} (engineer BC, {model} track)", "",
+    lines = [f"# the current protocol Gains Ledger — {project.upper()} (engineer BC, {model} track)", "",
              f"- registry: `{summary['registry_hash'][:16]}…`  seeds={len(seeds)}  "
              f"checkpoints={summary['checkpoints']}",
              f"- primary arm: `{primary}`; paired unit = initialization seed (Detail §14)",
@@ -1922,8 +1898,8 @@ def _write_gain_ledger(project, summary, seed_vals, seeds, metric_key, primary, 
         name, endpoint = key.split(":")
         lines.append(f"| {name} | {endpoint} | {c['n']} | {c['mean_delta']:+.4f} "
                      f"| [{c['ci95'][0]:+.4f}, {c['ci95'][1]:+.4f}] | {c['holm_p']:.4g} | {c['decision']} |")
-    lines += ["", "## TOST equivalence gate vs frozen V7 anchors", "",
-              "| arm | n_pairs | mean V8−V7 | TOST within δ_eq | gate |", "|---|---|---|---|---|"]
+    lines += ["", "## TOST equivalence gate vs frozen frozen anchors", "",
+              "| arm | n_pairs | mean the current protocol−the previous frozen release | TOST within δ_eq | gate |", "|---|---|---|---|---|"]
     for arm, t in summary["tost_vs_v7"].items():
         lines.append(f"| {arm} | {t['n_pairs']} | {t['mean_v8_minus_v7']:+.4f} "
                      f"| {str(t['tost_equivalent']).lower()} | {t['gate']} |")
@@ -1963,7 +1939,7 @@ def figs_phase(args) -> None:
                 if not fp.exists():
                     continue
                 d = json.loads(fp.read_text())
-                if d.get("v8", {}).get("failure"):
+                if d.get("protocol", {}).get("failure"):
                     vals[arm][seed] = 0.0
                 else:
                     v = d.get("final_metrics", {}).get(metric_key)
@@ -1999,7 +1975,7 @@ def _fig_main_paired(project, arms, primary, vals, agg, anchor, metric_key) -> N
     ax.set_ylim(lo, hi * 1.14 + 1e-6)  # no y-axis truncation
     for a, v in anchor.items():
         ax.axhline(v, ls="--", lw=0.9, alpha=0.65, color="#d62728" if a == primary else "#7f7f7f")
-        ax.text(len(arms) + 0.42, v, f"V7 {a}={v}", fontsize=7, va="center", color="#444")
+        ax.text(len(arms) + 0.42, v, f"the previous frozen release {a}={v}", fontsize=7, va="center", color="#444")
     base_anchor = anchor.get(primary, 0.0)
     for off, lab in ((DELTAS["delta_min"] if project == "bh" else 0.25, "δ_min"),
                      (-(DELTAS["delta_harm"] if project == "bh" else 0.5), "−δ_harm")):
@@ -2010,7 +1986,7 @@ def _fig_main_paired(project, arms, primary, vals, agg, anchor, metric_key) -> N
     ax.set_ylabel(ylab)
     ax.set_xticks(pos)
     ax.set_xticklabels(arms, rotation=18, ha="right")
-    ax.set_title(f"{project.upper()} V8 {metric_key} — n={len(common_seeds)} paired seeds, "
+    ax.set_title(f"{project.upper()} the current protocol {metric_key} — n={len(common_seeds)} paired seeds, "
                  f"failures={agg['total_failed_runs']} (kept in denominator); "
                  f"paired lines = same seed", fontsize=10)
     fig = plt.gcf()
@@ -2129,7 +2105,7 @@ def _fig_utility(project, arms, seeds) -> None:
             fp = sdir / f"{project}_{arm}_seed{seed:02d}.json"
             if not fp.exists():
                 continue
-            pre = json.loads(fp.read_text()).get("v8", {}).get("prefix", {})
+            pre = json.loads(fp.read_text()).get("protocol", {}).get("prefix", {})
             curves[seed] = {int(b): float(v) for b, v in pre.get(bkey, {}).items()}
             hits[seed] = {int(b): float(v) for b, v in pre.get("hits", {}).items()}
         bs = sorted({b for c in curves.values() for b in c})
@@ -2146,7 +2122,7 @@ def _fig_utility(project, arms, seeds) -> None:
     for ax in axes:
         ax.set_xlabel("oracle labels")
         ax.legend(fontsize=7)
-    fig.suptitle(f"{project.upper()} utility curves (V8 rerun, n={len(seeds)})")
+    fig.suptitle(f"{project.upper()} utility curves (the current protocol rerun, n={len(seeds)})")
     fig.tight_layout()
     for ext in ("png", "pdf"):
         fig.savefig(figs_dir(project) / f"{project}_utility_curves.{ext}", dpi=300)
@@ -2163,7 +2139,7 @@ def _fig_resources(project, arms, seeds, sdir) -> None:
             if not fp.exists():
                 continue
             d = json.loads(fp.read_text())
-            ls.append(d.get("v8", {}).get("latency_s", 0.0))
+            ls.append(d.get("protocol", {}).get("latency_s", 0.0))
             ss.append(float(d.get("surrogate_train_seconds", 0.0) or 0.0))
         lat.append(np.mean(ls) if ls else 0.0)
         surr.append(np.mean(ss) if ss else 0.0)
@@ -2189,10 +2165,10 @@ def main() -> int:
     os.environ.setdefault("OMP_NUM_THREADS", "4")
     os.environ.setdefault("OPENBLAS_NUM_THREADS", "4")
     os.environ.setdefault("MKL_NUM_THREADS", "4")
-    ap = argparse.ArgumentParser(description="V8 BH/GB1 scored-campaign runner (projects B+C)")
+    ap = argparse.ArgumentParser(description="the current protocol BH/GB1 scored-campaign runner (projects B+C)")
     ap.add_argument("--project", default="all", choices=["bh", "gb1", "all"])
     ap.add_argument("--phase", required=True, choices=["pilot", "p0", "scored", "aggregate", "figs"])
-    ap.add_argument("--arms", default="", help="comma list; default = full V7-main arm set")
+    ap.add_argument("--arms", default="", help="comma list; default = full the previous frozen release-main arm set")
     ap.add_argument("--seeds", type=int, default=0, help="ignored for scored (registry is authority)")
     ap.add_argument("--model", default="glm", choices=list(ENDPOINTS),
                     help="declared LLM track — GLM-5.3-Flash only (deepseek retired "
